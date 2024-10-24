@@ -151,14 +151,16 @@ fn main() {
                 }
             })
             .collect();
-        let new_contents = modified_lines.join("\n");
+        let mut new_contents = modified_lines.join("\n");
+        new_contents.push_str("\n");
 
         fs::write(&yaml_path, new_contents).unwrap();
 
         // Checkout, commit, push
         let mut cmd = Command::new("git");
         let branch_ver = args.update.replace(':', "-").replace('.', "-");
-        cmd.args(["checkout", "-b", &format!("update-to-{branch_ver}")])
+        let branch_name = format!("update-to-{branch_ver}");
+        cmd.args(["checkout", "-b", &branch_name])
             .current_dir(&proj_dir);
         if !run(&args, &mut cmd).unwrap() && !args.no_exit_on_error {
             continue;
@@ -191,7 +193,12 @@ fn main() {
             run_extra_cmd(&args, &test_cmd, &proj_dir);
         }
 
-        // TODO: push
+        let mut cmd = Command::new("git");
+        cmd.args(["push", "origin", &branch_name])
+            .current_dir(&proj_dir);
+        if !run(&args, &mut cmd).unwrap() && !args.no_exit_on_error {
+            continue;
+        }
     }
 }
 
